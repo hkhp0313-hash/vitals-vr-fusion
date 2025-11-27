@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,10 +11,19 @@ import {
   Star,
   User,
   Stethoscope,
-  Phone
+  Phone,
+  Search
 } from "lucide-react";
+import ChatDialog from "@/components/ChatDialog";
+import AppointmentDialog from "@/components/AppointmentDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const Consultation = () => {
+  const [chatOpen, setChatOpen] = useState(false);
+  const [appointmentOpen, setAppointmentOpen] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
   const doctors = [
     {
       id: 1,
@@ -63,6 +73,45 @@ const Consultation = () => {
     }
   ];
 
+  const handleVideoCall = (doctorName: string) => {
+    toast({
+      title: "Starting Video Call",
+      description: `Connecting to ${doctorName}...`,
+    });
+  };
+
+  const handlePhoneCall = (doctorName: string) => {
+    toast({
+      title: "Starting Phone Call",
+      description: `Calling ${doctorName}...`,
+    });
+  };
+
+  const handleEmergency = () => {
+    toast({
+      title: "Emergency Consultation",
+      description: "Connecting you to the next available doctor immediately...",
+      variant: "destructive"
+    });
+  };
+
+  const handleScheduleAppointment = (doctorName?: string) => {
+    setSelectedDoctor(doctorName || "");
+    setAppointmentOpen(true);
+  };
+
+  const handleMessageDoctor = () => {
+    toast({
+      title: "Message Center",
+      description: "Opening your message inbox...",
+    });
+  };
+
+  const filteredDoctors = doctors.filter(doctor =>
+    doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -86,7 +135,10 @@ const Consultation = () => {
                 <p className="text-muted-foreground">Get instant answers to your health questions</p>
               </div>
             </div>
-            <Button className="bg-gradient-medical hover:opacity-90">
+            <Button 
+              className="bg-gradient-medical hover:opacity-90"
+              onClick={() => setChatOpen(true)}
+            >
               Chat with AI
             </Button>
           </div>
@@ -98,16 +150,32 @@ const Consultation = () => {
             <div className="mb-6">
               <h2 className="text-xl font-semibold text-foreground mb-4">Available Doctors</h2>
               <div className="flex space-x-4 mb-4">
-                <Input placeholder="Search doctors..." className="flex-1" />
-                <Button variant="outline">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search doctors by name or specialty..." 
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleScheduleAppointment()}
+                >
                   <Calendar className="h-4 w-4 mr-2" />
-                  Filter
+                  Schedule
                 </Button>
               </div>
             </div>
 
             <div className="space-y-4">
-              {doctors.map((doctor) => (
+              {filteredDoctors.length === 0 ? (
+                <Card className="p-8 text-center">
+                  <p className="text-muted-foreground">No doctors found matching your search.</p>
+                </Card>
+              ) : (
+                filteredDoctors.map((doctor) => (
                 <Card key={doctor.id} className="p-6 bg-gradient-card backdrop-blur-sm border border-border/50 shadow-glass hover:shadow-medical transition-all duration-300 animate-scale-in">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -133,11 +201,19 @@ const Consultation = () => {
                       <p className="text-sm text-muted-foreground">Next slot:</p>
                       <p className="font-medium">{doctor.nextSlot}</p>
                       <div className="flex space-x-2">
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleVideoCall(doctor.name)}
+                        >
                           <Video className="h-4 w-4 mr-1" />
                           Video
                         </Button>
-                        <Button size="sm" variant="outline">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handlePhoneCall(doctor.name)}
+                        >
                           <Phone className="h-4 w-4 mr-1" />
                           Call
                         </Button>
@@ -145,7 +221,8 @@ const Consultation = () => {
                     </div>
                   </div>
                 </Card>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
@@ -155,15 +232,26 @@ const Consultation = () => {
             <Card className="p-6 bg-gradient-card backdrop-blur-sm border border-border/50 shadow-glass">
               <h3 className="text-lg font-semibold text-foreground mb-4">Quick Actions</h3>
               <div className="space-y-3">
-                <Button className="w-full justify-start bg-gradient-medical hover:opacity-90">
+                <Button 
+                  className="w-full justify-start bg-gradient-medical hover:opacity-90"
+                  onClick={handleEmergency}
+                >
                   <Stethoscope className="h-4 w-4 mr-2" />
                   Emergency Consultation
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => handleScheduleAppointment()}
+                >
                   <Calendar className="h-4 w-4 mr-2" />
                   Schedule Appointment
                 </Button>
-                <Button variant="outline" className="w-full justify-start">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={handleMessageDoctor}
+                >
                   <MessageCircle className="h-4 w-4 mr-2" />
                   Message Doctor
                 </Button>
@@ -209,6 +297,13 @@ const Consultation = () => {
             </Card>
           </div>
         </div>
+
+        <ChatDialog open={chatOpen} onOpenChange={setChatOpen} />
+        <AppointmentDialog 
+          open={appointmentOpen} 
+          onOpenChange={setAppointmentOpen}
+          doctorName={selectedDoctor}
+        />
       </div>
     </div>
   );
